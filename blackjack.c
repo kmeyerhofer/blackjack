@@ -5,6 +5,11 @@
 #include <time.h>
 #include "pcg_basic.c"
 
+struct user {
+  char name[50];
+  struct card *hand;
+} user;
+
 struct card {
   int value;
   char suit[9];
@@ -14,15 +19,18 @@ struct card {
 
 int gameLoop(void);
 int createDeck(int deck[4][13]);
-void dealCard(struct card *, int);
-int randLimit(int);
+void dealCard(struct user *, int);
+int setUserName(struct user *);
 int setCardName(struct card *, int);
 int setCardValue(struct card *, int);
 int setCardSuit(struct card *, int);
+// struct card * userHandEndNode(struct user *);
+int addCard(struct card *, struct user *);
+int traverseUserHand(struct user *, char);
 
-int deck[4][13];
+
 char names[13][6] = { "Ace", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Jack", "Queen", "King"};
-
+int deck[4][13];
 pcg32_random_t rng1, rng2; // Creates 2 separate RNGs
 
 
@@ -36,32 +44,82 @@ int main() {
 }
 
 int gameLoop() {
+  static struct user player;
+  static struct user dealer;
+  strcpy(dealer.name, "Dealer");
+
   createDeck(deck);
-  struct card playerHand;
-  dealCard(&playerHand, 1);
+  setUserName(&player);
+  dealCard(&player, 2);
+  dealCard(&dealer, 2);
+  printf("User name (player): %s\n", player.name);
   printf("Here is your hand:\n");
-  printf("Suit within gameLoop: %s\n", playerHand.suit);
-  printf("Value within gameLoop: %d\n", playerHand.value);
-  printf("Name within gameLoop: %s\n", playerHand.name);
+  char display = 'd';
+  char add = 'a';
+  traverseUserHand(&player, display);
+  printf("%s's hand total: %d\n", player.name, traverseUserHand(&player, add));
+  traverseUserHand(&dealer, display);
+  printf("%s's hand total: %d\n", dealer.name, traverseUserHand(&dealer, add));
+
   return 0;
 }
 
-void dealCard(struct card *hand, int times) {
+void dealCard(struct user *player, int times) {
   int i;
   int suitIndex;
   int cardIndex;
   for (i = 0; i < times; i++) {
+    // find the last card in the player's hand
+    struct card *userCard;
+    userCard = (struct card *) malloc(sizeof(struct card));
+    userCard->next = 0;
     do {
       suitIndex = pcg32_boundedrand_r(&rng1, 4);
       cardIndex = pcg32_boundedrand_r(&rng2, 13);
     } while (!deck[suitIndex][cardIndex]);
     deck[suitIndex][cardIndex] = 0;
-    printf("dealCard: suitIndex: %d, cardIndex: %d\n", suitIndex, cardIndex);
-
-    setCardSuit(hand, suitIndex);
-    setCardName(hand, cardIndex);
-    setCardValue(hand, cardIndex);
+    setCardSuit(userCard, suitIndex);
+    setCardName(userCard, cardIndex);
+    setCardValue(userCard, cardIndex);
+    addCard(userCard, player);
   }
+}
+
+int traverseUserHand(struct user *player, char action) {
+  // 'd' for display, 'a' for add values
+  int value = 0;
+  if (player != 0) {
+    struct card *traverser;
+    traverser = player->hand;
+      while (traverser != 0) {
+        switch (action) {
+          case 'd':
+            printf("(%d) %s of %s\n", traverser->value, traverser->name, traverser->suit);
+            break;
+            case 'a':
+            value += traverser->value;
+            break;
+          }
+          traverser = traverser->next;
+        }
+      }
+  return value;
+}
+
+int addCard(struct card *userCard, struct user *player) {
+  struct card *traverserCard;
+  if (player != 0) {
+    if (player->hand != 0) {
+      traverserCard = player->hand;
+      while (traverserCard->next != 0) {
+        traverserCard = traverserCard->next;
+      }
+      traverserCard->next = userCard;
+    } else {
+      player->hand = userCard;
+    }
+  }
+  return 0;
 }
 
 int createDeck(int deck[4][13]) {
@@ -74,36 +132,41 @@ int createDeck(int deck[4][13]) {
   return 0;
 }
 
-int setCardSuit(struct card *hand, int value) {
-  switch (value) {
+int setUserName(struct user *player) {
+  // get name from user
+  strcpy(player->name, "Player");
+}
+
+int setCardSuit(struct card *newCard, int index) {
+  switch (index) {
     case 0:
-      strcpy(hand->suit, "Diamonds");
+      strcpy(newCard->suit, "Diamonds");
       break;
     case 1:
-      strcpy(hand->suit, "Hearts");
+      strcpy(newCard->suit, "Hearts");
       break;
     case 2:
-      strcpy(hand->suit, "Spades");
+      strcpy(newCard->suit, "Spades");
       break;
     case 3:
-      strcpy(hand->suit, "Clubs");
+      strcpy(newCard->suit, "Clubs");
       break;
   }
   return 0;
 }
 
-int setCardValue(struct card *hand, int cardIndex) {
+int setCardValue(struct card *newCard, int cardIndex) {
   if (cardIndex > 9) {
-    hand->value = 10;
+    newCard->value = 10;
   } else if (cardIndex == 0) {
-    hand->value = 11;
+    newCard->value = 11;
   } else {
-    hand->value = cardIndex + 1;
+    newCard->value = cardIndex + 1;
   }
   return 0;
 }
 
-int setCardName(struct card *hand, int cardIndex) {
-  strcpy(hand->name, names[cardIndex]);
+int setCardName(struct card *newCard, int cardIndex) {
+  strcpy(newCard->name, names[cardIndex]);
   return 0;
 }
