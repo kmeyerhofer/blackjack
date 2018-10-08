@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
-// #include "rng.c"
 #include "pcg_basic.c"
 
 struct card {
@@ -13,7 +12,6 @@ struct card {
   struct card *next;
 } card;
 
-// int rand(void);
 int gameLoop(void);
 int createDeck(int deck[4][13]);
 void dealCard(struct card *, int);
@@ -38,27 +36,13 @@ int main() {
 }
 
 int gameLoop() {
-  // printf("before createDeck\n");
   createDeck(deck);
-  // printf("after createDeck\n");
-
-  // printf("before struct initialization\n");
   struct card playerHand;
-  //struct *ptrPlayerHand = playerHand;
-  // printf("after struct initialization\n");
-  // playerHand = malloc(sizeof(struct card));
-  // playerHand->next = 0;
-  // printf("before dealCard\n");
   dealCard(&playerHand, 1);
-  // printf("after dealCard\n");
   printf("Here is your hand:\n");
   printf("Suit within gameLoop: %s\n", playerHand.suit);
-  // playerHand.value = 10;
   printf("Value within gameLoop: %d\n", playerHand.value);
   printf("Name within gameLoop: %s\n", playerHand.name);
-
-
-
   return 0;
 }
 
@@ -68,29 +52,16 @@ void dealCard(struct card *hand, int times) {
   int cardIndex;
   for (i = 0; i < times; i++) {
     do {
-      // suit = randLimit(3);
-      // card = randLimit(12);
-      //
       suitIndex = pcg32_boundedrand_r(&rng1, 4);
       cardIndex = pcg32_boundedrand_r(&rng2, 13);
-
-
     } while (!deck[suitIndex][cardIndex]);
     deck[suitIndex][cardIndex] = 0;
     printf("dealCard: suitIndex: %d, cardIndex: %d\n", suitIndex, cardIndex);
-    // printf("pcg32_boundedrand_r(&rng1, 15) call: %d\n", pcg32_boundedrand_r(&rng1, 15));
-    // printf("pcg32_boundedrand_r(&rng2, 13) call: %d\n", pcg32_boundedrand_r(&rng2, 13));
-    // printf("randLimit(3) call: %d\n", randLimit(3));
 
     setCardSuit(hand, suitIndex);
     setCardName(hand, cardIndex);
     setCardValue(hand, cardIndex);
   }
-  // printf("after assigning to *hand\n");
-
-  // printf("Within dealCard: %s\n", hand->suit);
-  // player = malloc(sizeof(*player));
-  // player->next = 0;
 }
 
 int createDeck(int deck[4][13]) {
@@ -100,32 +71,7 @@ int createDeck(int deck[4][13]) {
       deck[i][j] = j + 1;
     }
   }
-  // printf("Deck 2, 2: %i\n", deck[2][2]);
-
   return 0;
-}
-
-int randLimit(int max) {
-  // double maxNum = genrand();
-  // printf("maxNum (genrand()): %d\n", maxNum);
-  // int divisor = maxNum / (max + 1);
-  // int num;
-  // do {
-    // num =  maxNum / divisor;
-  // } while (num > max);
-  // printf("int num before int typecast: %i\n", num);
-  // return (int)num;
-  // printf("int num after int typecast: %d\n", num);
-  // double random = genrand();
-  // if (random < 0) {
-  //   random *= -1;
-  // }
-  // printf("'random' value: %d\n", random);
-  // num = ((int)random % max) + 1;
-  // printf("'num' value: %d\n", num);
-  // return num;
-
-  // return random;
 }
 
 int setCardSuit(struct card *hand, int value) {
