@@ -7,6 +7,7 @@
 
 struct user {
   char name[50];
+  int handTotal;
   struct card *hand;
 } user;
 
@@ -24,9 +25,10 @@ int setUserName(struct user *);
 int setCardName(struct card *, int);
 int setCardValue(struct card *, int);
 int setCardSuit(struct card *, int);
-// struct card * userHandEndNode(struct user *);
 int addCard(struct card *, struct user *);
 int traverseUserHand(struct user *, char);
+void displayUserHand(struct user *);
+int calcUserHand(struct user *);
 
 
 char names[13][6] = { "Ace", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Jack", "Queen", "King"};
@@ -38,7 +40,7 @@ int main() {
   // Seeds 2 separate RNGs
   pcg32_srandom_r(&rng1, time(NULL), (intptr_t)&rng1);
   pcg32_srandom_r(&rng2, time(NULL), (intptr_t)&rng2);
-  printf("Welcome to Blackjack!\n");
+  printf("Welcome to Blackjack!\n\n");
   gameLoop();
   return 0;
 }
@@ -47,19 +49,21 @@ int gameLoop() {
   static struct user player;
   static struct user dealer;
   strcpy(dealer.name, "Dealer");
-
-  createDeck(deck);
   setUserName(&player);
+
+  //loop goes here
+  createDeck(deck);
   dealCard(&player, 2);
   dealCard(&dealer, 2);
-  printf("User name (player): %s\n", player.name);
-  printf("Here is your hand:\n");
-  char display = 'd';
+  printf("%s's hand:\n", player.name);
   char add = 'a';
-  traverseUserHand(&player, display);
-  printf("%s's hand total: %d\n", player.name, traverseUserHand(&player, add));
-  traverseUserHand(&dealer, display);
-  printf("%s's hand total: %d\n", dealer.name, traverseUserHand(&dealer, add));
+  displayUserHand(&player);
+  player.handTotal = calcUserHand(&player);
+  printf("Hand total: %d\n\n", player.handTotal);
+  printf("%s's hand:\n", dealer.name);
+  displayUserHand(&dealer); // Dealer gets special output and total
+  dealer.handTotal = calcUserHand(&dealer);
+  printf("Hand total: %d\n", dealer.handTotal);
 
   return 0;
 }
@@ -69,7 +73,6 @@ void dealCard(struct user *player, int times) {
   int suitIndex;
   int cardIndex;
   for (i = 0; i < times; i++) {
-    // find the last card in the player's hand
     struct card *userCard;
     userCard = (struct card *) malloc(sizeof(struct card));
     userCard->next = 0;
@@ -83,6 +86,16 @@ void dealCard(struct user *player, int times) {
     setCardValue(userCard, cardIndex);
     addCard(userCard, player);
   }
+}
+
+int calcUserHand(struct user *player) {
+  char add = 'a';
+  return traverseUserHand(player, add);
+}
+
+void displayUserHand(struct user *player) {
+  char display = 'd';
+  traverseUserHand(player, display);
 }
 
 int traverseUserHand(struct user *player, char action) {
