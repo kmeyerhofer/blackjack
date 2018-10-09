@@ -43,6 +43,7 @@ void dealerTurn(struct user *, struct user *);
 int hitOrStay(void);
 int calculateWinner(struct user *, struct user *);
 void displayScore(struct user *, struct user *);
+int modifiedAceTotal(struct user *);
 
 
 char names[13][6] = { "Ace", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Jack", "Queen", "King"};
@@ -68,11 +69,9 @@ int gameLoop() {
   player.wins = 0;
   dealer.wins = 0;
 
-  //loop goes here
   do {
     startGame(&player, &dealer);
     gameCalcHands(&player, &dealer);
-
   } while (playAgain() == 1);
   printf("Final Score:\n");
   displayScore(&player, &dealer);
@@ -92,6 +91,8 @@ int blackjackCheck(int num) {
 }
 
 void gameCalcHands(struct user *player, struct user *dealer) {
+  calcUserHand(player);
+  calcUserHand(dealer);
   int playerBlackjack = blackjackCheck(player->handTotal);
   int dealerBlackjack = blackjackCheck(dealer->handTotal);
   if (playerBlackjack && dealerBlackjack) {
@@ -103,7 +104,8 @@ void gameCalcHands(struct user *player, struct user *dealer) {
     // dealer wins
     displayUserHand(dealer);
     increaseWins(dealer);
-    printf("Dealer has 21! You lose %s.\n", player->name);
+    // displayMatchWinner(dealer, "Dealer has 21");
+    printf("%s has 21! %s wins.\n", dealer->name, dealer->name);
   } else if (playerBlackjack && !dealerBlackjack) {
     // dealer turn
     dealerTurn(player, dealer);
@@ -119,15 +121,15 @@ int calculateWinner(struct user *player, struct user *dealer) {
   int playerTotal = player->handTotal;
   int dealerTotal = dealer->handTotal;
   if (playerTotal == dealerTotal) {
-    printf("Push, (calculateWinner)\n\n");
+    printf("Push\n\n");
   } else if (dealerTotal > 21) {
-    printf("Dealer Bust, (calculateWinner)\n\n");
+    printf("Dealer Busts, %s wins!\n\n", player->name);
     increaseWins(player);
   } else if (playerTotal > dealerTotal) {
-    printf("Player Wins, (calculateWinner)\n\n");
+    printf("%s Wins! %i to %i\n\n", player->name, playerTotal, dealerTotal);
     increaseWins(player);
   } else if (playerTotal < dealerTotal && dealerTotal <= 21) {
-    printf("Dealer Wins, (calculateWinner)\n\n");
+    printf("%s Wins! %i to %i\n\n", dealer->name, dealerTotal, playerTotal);
     increaseWins(dealer);
   }
   return 0;
@@ -140,11 +142,10 @@ void dealerTurn(struct user *player, struct user *dealer) {
   }
   printf("\n%s's hand:\n", dealer->name);
   displayUserHand(dealer);
-  printf("Hand total: %d\n", dealer->handTotal);
+  printf("Hand total: %d\n\n", dealer->handTotal);
   if (dealer->handTotal > 21) {
-    printf("%s busts!\n\n", dealer->name);
+    printf("%s busts, %s wins!\n\n", dealer->name, player->name);
     increaseWins(player);
-    // printf("")
   } else {
     calculateWinner(player, dealer);
   }
@@ -157,13 +158,12 @@ int playerTurn(struct user *player, struct user *dealer) {
     calcUserHand(player);
     printf("\n%s's hand:\n", player->name);
     displayUserHand(player);
-    int playerTotal = player->handTotal;
-    printf("Hand total: %d\n\n", playerTotal);
-    if (playerTotal > 21) {
-      printf("You Bust! \n");
+    printf("Hand total: %d\n\n", player->handTotal);
+    if (player->handTotal > 21) {
+      printf("%s Busts, %s wins!\n\n", player->name, dealer->name);
       increaseWins(dealer);
       return 0;
-    } else if (playerTotal == 21) {
+    } else if (player->handTotal == 21) {
       dealerTurn(player, dealer);
       return 0;
     }
@@ -200,7 +200,7 @@ void startGame(struct user *player, struct user *dealer) {
   dealCard(player, 2);
   dealCard(dealer, 2);
   calcUserHand(player);
-  printf("\n\n----------------------------------\n\n");
+  printf("\n----------------------------------\n\n");
   displayScore(player, dealer);
   printf("\n%s's hand:\n", player->name);
   displayUserHand(player);
@@ -262,35 +262,56 @@ void dealCard(struct user *player, int times) {
   }
 }
 
-int calcUserHand(struct user *player) {
+int calcUserHand(struct user *u) {
   char calc = 'c';
-  player->handTotal = traverseUserHand(player, calc);
+  char includeAce = 'i';
+  int userTotal = traverseUserHand(u, calc);
+  if (userTotal > 21 && traverseUserHand(u, includeAce) > 0) {
+    modifiedAceTotal(u);
+  }
+  return u->handTotal = traverseUserHand(u, calc);
+}
+
+int modifiedAceTotal(struct user *u) {
+  char ace = 'a';
+  traverseUserHand(u, ace);
   return 0;
-}
+};
 
-void displayUserHand(struct user *player) {
+void displayUserHand(struct user *u) {
   char display = 'd';
-  traverseUserHand(player, display);
+  traverseUserHand(u, display);
 }
 
-int traverseUserHand(struct user *player, char action) {
-  // 'd' for display, 'a' for add values
+int traverseUserHand(struct user *u, char action) {
+  /* 'd' for display, 'c' for calculate values,
+     'a' for modify ace value, 'i' for include unmodified aces */
   int value = 0;
-  if (player != 0) {
+  if (u != 0) {
     struct card *traverser;
-    traverser = player->hand;
+    traverser = u->hand;
       while (traverser != 0) {
         switch (action) {
-          case 'd':
-            printf("(%d) %s of %s\n", traverser->value, traverser->name, traverser->suit);
-            break;
+          case 'a':
+            if (traverser->value == 11) {
+              traverser->value = 1;
+              return 1;
+            }
           case 'c':
             value += traverser->value;
             break;
-          }
-          traverser = traverser->next;
+          case 'd':
+            printf("(%d) %s of %s\n", traverser->value, traverser->name, traverser->suit);
+            break;
+          case 'i':
+            if (traverser->value == 11) {
+              value += 1;
+            }
+            break;
         }
+        traverser = traverser->next;
       }
+    }
   return value;
 }
 
