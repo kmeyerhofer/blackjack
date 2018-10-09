@@ -147,7 +147,9 @@ int createDeck(int deck[4][13]) {
 
 int setUserName(struct user *player) {
   // get name from user
-  strcpy(player->name, "Player");
+  strcpy(player->name, fgets("Enter your name", 50, stdin));
+  // scanf("");
+  // strcpy(player->name, "Player");
 }
 
 int setCardSuit(struct card *newCard, int index) {
