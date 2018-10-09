@@ -29,6 +29,10 @@ int addCard(struct card *, struct user *);
 int traverseUserHand(struct user *, char);
 void displayUserHand(struct user *);
 int calcUserHand(struct user *);
+void displayFirstDealerHand(struct user *);
+int blackjack(int, int);
+char playAgain(void);
+void resetPlayerData(struct user *, struct user *);
 
 
 char names[13][6] = { "Ace", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Jack", "Queen", "King"};
@@ -50,22 +54,82 @@ int gameLoop() {
   static struct user dealer;
   strcpy(dealer.name, "Dealer");
   setUserName(&player);
+  char continueGame = 0;
 
   //loop goes here
-  createDeck(deck);
-  dealCard(&player, 2);
-  dealCard(&dealer, 2);
-  printf("%s's hand:\n", player.name);
-  char add = 'a';
-  displayUserHand(&player);
-  player.handTotal = calcUserHand(&player);
-  printf("Hand total: %d\n\n", player.handTotal);
-  printf("%s's hand:\n", dealer.name);
-  displayUserHand(&dealer); // Dealer gets special output and total
-  dealer.handTotal = calcUserHand(&dealer);
-  printf("Hand total: %d\n", dealer.handTotal);
+  do {
 
+    if (continueGame) {
+      resetPlayerData(&player, &dealer);
+    }
+
+    createDeck(deck);
+    dealCard(&player, 2);
+    dealCard(&dealer, 2);
+    printf("\n%s's hand:\n", player.name);
+    char add = 'a';
+    displayUserHand(&player);
+    player.handTotal = calcUserHand(&player);
+    printf("Hand total: %d\n\n", player.handTotal);
+    printf("%s's hand:\n", dealer.name);
+    // displayUserHand(&dealer); // Dealer gets special output and total
+    displayFirstDealerHand(&dealer);
+    dealer.handTotal = calcUserHand(&dealer);
+    // printf("Hand total: %d\n", dealer.handTotal);
+
+    // 21 check goes here
+    int blackjackCheck = blackjack(player.handTotal, dealer.handTotal);
+    printf("blackjackCheck: %d\n", blackjackCheck);
+    if (blackjackCheck == -1) {
+      displayUserHand(&dealer);
+      printf("Dealer has 21! Sorry %s, you lose.\n", player.name);
+      printf("Would you like to play again? (y/n)\n");
+      continueGame = getc(stdin);
+    } else if (blackjackCheck == 1) {
+      printf("%s has 21! %s wins!\n", player.name, player.name);
+      printf("Would you like to play again? (y/n)\n");
+      continueGame = getc(stdin);
+    } else if (blackjackCheck == 0) {
+      printf("Would you like to play again? (y/n)\n");
+      continueGame = getc(stdin);
+    }
+    printf("continueGame %c\n", continueGame);
+
+
+
+    // game is only looping one time after answering 'y'
+  } while (continueGame == 'y');
   return 0;
+}
+
+void resetPlayerData(struct user *player, struct user *dealer) {
+  player->hand = 0;
+  player->handTotal = 0;
+  dealer->hand = 0;
+  dealer->handTotal = 0;
+}
+
+char playAgain(void) {
+  printf("Would you like to play again? (y/n)\n");
+  char answer = getchar();
+  return answer;
+}
+
+int blackjack(int playerTotal, int dealerTotal) {
+  if (playerTotal < dealerTotal && dealerTotal == 21) {
+    return -1;
+  } else if (playerTotal > dealerTotal && playerTotal == 21) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+void displayFirstDealerHand(struct user *dealer) {
+  int cardValue = dealer->hand->value;
+  printf("(%d) %s of %s\n", cardValue, dealer->hand->name, dealer->hand->suit);
+  printf("And a face down card\n");
+  printf("Card total: %d\n", cardValue);
 }
 
 void dealCard(struct user *player, int times) {
@@ -147,9 +211,11 @@ int createDeck(int deck[4][13]) {
 
 int setUserName(struct user *player) {
   // get name from user
-  strcpy(player->name, fgets("Enter your name", 50, stdin));
-  // scanf("");
-  // strcpy(player->name, "Player");
+  char name[50];
+  printf("Enter your name:\n");
+  fgets(name, 50,stdin);
+  name[strcspn(name, "\n")] = 0; // removes newline
+  strcpy(player->name, name);
 }
 
 int setCardSuit(struct card *newCard, int index) {
